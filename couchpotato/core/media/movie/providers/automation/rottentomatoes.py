@@ -35,13 +35,10 @@ class Rottentomatoes(Automation, RSS):
             for movie in rss_movies:
 
                 value = self.getTextElement(movie, "title")
-                result = re.search('(?<=%\s).*', value)
-
-                if result:
-
+                if result := re.search('(?<=%\s).*', value):
                     log.info2('Something smells...')
                     rating = tryInt(self.getTextElement(movie, rating_tag))
-                    name = result.group(0)
+                    name = result[0]
 
                     if rating < tryInt(self.conf('tomatometer_percent')):
                         log.info2('%s seems to be rotten...', name)

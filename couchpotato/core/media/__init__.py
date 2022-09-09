@@ -26,7 +26,7 @@ class MediaBase(Plugin):
         def onComplete():
             try:
                 media = fireEvent('media.get', media_id, single = True)
-                event_name = '%s.searcher.single' % media.get('type')
+                event_name = f"{media.get('type')}.searcher.single"
 
                 fireEventAsync(event_name, media, on_complete = self.createNotifyFront(media_id), manual = True)
             except:
@@ -39,7 +39,7 @@ class MediaBase(Plugin):
         def notifyFront():
             try:
                 media = fireEvent('media.get', media_id, single = True)
-                event_name = '%s.update' % media.get('type')
+                event_name = f"{media.get('type')}.update"
 
                 fireEvent('notify.frontend', type = event_name, data = media)
             except:
@@ -69,7 +69,7 @@ class MediaBase(Plugin):
         image_type = 'poster'
 
         # Remove non-existing files
-        file_type = 'image_%s' % image_type
+        file_type = f'image_{image_type}'
 
         # Make existing unique
         unique_files = list(set(existing_files.get(file_type, [])))
@@ -90,8 +90,7 @@ class MediaBase(Plugin):
                 continue
 
             if file_type not in existing_files or len(existing_files.get(file_type, [])) == 0:
-                file_path = fireEvent('file.download', url = image, single = True)
-                if file_path:
+                if file_path := fireEvent('file.download', url=image, single=True):
                     existing_files[file_type] = [file_path]
                     break
             else:

@@ -26,10 +26,7 @@ class Charts(Plugin):
         if force_update:
             charts = self.updateViewCache()
         else:
-            charts = self.getCache('charts_cached')
-            if not charts:
-                charts = self.updateViewCache()
-
+            charts = self.getCache('charts_cached') or self.updateViewCache()
         return {
             'success': True,
             'count': len(charts),
@@ -41,8 +38,7 @@ class Charts(Plugin):
         if self.update_in_progress:
             while self.update_in_progress:
                 time.sleep(1)
-            catched_charts = self.getCache('charts_cached')
-            if catched_charts:
+            if catched_charts := self.getCache('charts_cached'):
                 return catched_charts
 
         charts = []

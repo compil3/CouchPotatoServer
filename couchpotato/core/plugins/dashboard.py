@@ -32,9 +32,10 @@ class Dashboard(Plugin):
         # See what the profile contain and cache it
         profile_pre = {}
         for profile in profiles:
-            contains = {}
-            for q_identifier in profile.get('qualities', []):
-                contains['theater' if q_identifier in pre_releases else 'dvd'] = True
+            contains = {
+                'theater' if q_identifier in pre_releases else 'dvd': True
+                for q_identifier in profile.get('qualities', [])
+            }
 
             profile_pre[profile.get('_id')] = contains
 
@@ -50,7 +51,7 @@ class Dashboard(Plugin):
         medias = []
         now_year = date.today().year
 
-        if len(active_ids) > 0:
+        if active_ids:
 
             # Order by title or randomize
             if not random:
@@ -74,33 +75,45 @@ class Dashboard(Plugin):
                 elif pp.get('dvd') and fireEvent('movie.searcher.could_be_released', False, eta, media['info']['year'], single = True):
                     coming_soon = True
 
-                if coming_soon:
+                if coming_soon and (
+                    (
+                        (
+                            not late
+                            and (media['info']['year'] >= now_year - 1)
+                            and (
+                                not eta.get('dvd')
+                                and not eta.get('theater')
+                                or eta.get('dvd')
+                                and eta.get('dvd') > (now - 2419200)
+                            )
+                        )
+                        or (
+                            late
+                            and (
+                                media['info']['year'] < now_year - 1
+                                or (eta.get('dvd', 0) > 0 or eta.get('theater'))
+                                and eta.get('dvd') < (now - 2419200)
+                            )
+                        )
+                    )
+                ):
+                    add = True
 
-                    # Don't list older movies
-                    if ((not late and (media['info']['year'] >= now_year - 1) and (not eta.get('dvd') and not eta.get('theater') or eta.get('dvd') and eta.get('dvd') > (now - 2419200))) or
-                            (late and (media['info']['year'] < now_year - 1 or (eta.get('dvd', 0) > 0 or eta.get('theater')) and eta.get('dvd') < (now - 2419200)))):
+                    # Check if it doesn't have any releases
+                    if late:
+                        media['releases'] = fireEvent('release.for_media', media['_id'], single = True)
 
-                        add = True
+                        for release in media.get('releases'):
+                            if release.get('status') in ['snatched', 'available', 'seeding', 'downloaded']:
+                                add = False
+                                break
 
-                        # Check if it doesn't have any releases
-                        if late:
-                            media['releases'] = fireEvent('release.for_media', media['_id'], single = True)
-                            
-                            for release in media.get('releases'):
-                                if release.get('status') in ['snatched', 'available', 'seeding', 'downloaded']:
-                                    add = False
-                                    break
+                    if add:
+                        medias.append(media)
 
-                        if add:
-                            medias.append(media)
+                    if len(medias) >= limit:
+                        break
 
-                        if len(medias) >= limit:
-                            break
-
-        return {
-            'success': True,
-            'empty': len(medias) == 0,
-            'movies': medias,
-        }
+        return {'success': True, 'empty': not medias, 'movies': medias}
 
     getLateView = getSoonView

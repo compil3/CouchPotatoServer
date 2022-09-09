@@ -48,24 +48,30 @@ class Userscript(Plugin):
 
         klass = self
 
+
+
         class UserscriptHandler(RequestHandler):
 
             def get(self, random, route):
 
                 params = {
-                    'includes': fireEvent('userscript.get_includes', merge = True),
-                    'excludes': fireEvent('userscript.get_excludes', merge = True),
+                    'includes': fireEvent('userscript.get_includes', merge=True),
+                    'excludes': fireEvent('userscript.get_excludes', merge=True),
                     'version': klass.getVersion(),
-                    'api': '%suserscript/' % Env.get('api_base'),
-                    'host': '%s://%s' % (self.request.protocol, self.request.headers.get('X-Forwarded-Host') or self.request.headers.get('host')),
+                    'api': f"{Env.get('api_base')}userscript/",
+                    'host': f"{self.request.protocol}://{self.request.headers.get('X-Forwarded-Host') or self.request.headers.get('host')}",
                 }
+
 
                 script = klass.renderTemplate(__file__, 'template.js_tmpl', **params)
                 klass.createFile(os.path.join(Env.get('cache_dir'), 'couchpotato.user.js'), script)
 
                 self.redirect(Env.get('api_base') + 'file.cache/couchpotato.user.js')
 
-        Env.get('app').add_handlers(".*$", [('%s%s' % (Env.get('api_base'), script_route), UserscriptHandler)])
+
+        Env.get('app').add_handlers(
+            ".*$", [(f"{Env.get('api_base')}{script_route}", UserscriptHandler)]
+        )
 
     def getVersion(self):
 
@@ -88,6 +94,6 @@ class Userscript(Plugin):
         }
         if not isDict(params['movie']):
             log.error('Failed adding movie via url: %s', url)
-            params['error'] = params['movie'] if params['movie'] else 'Failed getting movie info'
+            params['error'] = params['movie'] or 'Failed getting movie info'
 
         return params

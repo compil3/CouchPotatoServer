@@ -129,14 +129,19 @@ class Event(object):
             event += {'handler':handler, 'memoize':True, 'timeout':1.5}
         """
         handler_, memoize, timeout = self._extract(handler)
-        self.handlers['%s.%s' % (priority, self.hash(handler_))] = (handler_, memoize, timeout)
+        self.handlers[f'{priority}.{self.hash(handler_)}'] = (
+            handler_,
+            memoize,
+            timeout,
+        )
+
         return self
 
     def unhandle(self, handler):
         """ Unregisters a handler """
         handler_, memoize, timeout = self._extract(handler)
         key = self.hash(handler_)
-        if not key in self.handlers:
+        if key not in self.handlers:
             raise ValueError('Handler "%s" was not found' % str(handler_))
         del self.handlers[key]
         return self
@@ -222,10 +227,11 @@ class Event(object):
 
                 try:
                     r = self._memoize(memoize, timeout, handler, *args, **kwargs)
-                    if not self.asynchronous:
-                        if not return_on_result or (return_on_result and r[1] is not None):
-                            add_to_result(h_, tuple(r))
-                            got_results = True
+                    if not self.asynchronous and (
+                        not return_on_result or r[1] is not None
+                    ):
+                        add_to_result(h_, tuple(r))
+                        got_results = True
 
                 except Exception:
                     if not self.asynchronous:
@@ -294,9 +300,12 @@ class Event(object):
                 return result
 
             result = self._timeout(timeout, handler, *args, **kwargs)
-            if isinstance(result, tuple) and len(result) == 3:
-                if isinstance(result[1], Exception): #error occurred
-                    return [False, self._error(result), handler]
+            if (
+                isinstance(result, tuple)
+                and len(result) == 3
+                and isinstance(result[1], Exception)
+            ):
+                return [False, self._error(result), handler]
             return [True, result, handler]
         else:
             hash_ = self.hash(handler)
@@ -309,9 +318,12 @@ class Event(object):
                 result = handler(*args, **kwargs)
             else:
                 result = self._timeout(timeout, handler, *args, **kwargs)
-                if isinstance(result, tuple) and len(result) == 3:
-                    if isinstance(result[1], Exception): #error occurred
-                        return [False, self._error(result), handler]
+                if (
+                    isinstance(result, tuple)
+                    and len(result) == 3
+                    and isinstance(result[1], Exception)
+                ):
+                    return [False, self._error(result), handler]
 
             lock = threading.RLock()
             lock.acquire()
@@ -332,28 +344,20 @@ class Event(object):
         t.join(timeout)
 
         if not t.is_alive():
-            if t.exc_info:
-                return t.exc_info
-            return t.result
-        else:
-            try:
-                msg = '[%s] Execution was forcefully terminated'
-                raise RuntimeError(msg % t.name)
-            except:
-                return sys.exc_info()
+            return t.exc_info or t.result
+        try:
+            raise RuntimeError(f'[{t.name}] Execution was forcefully terminated')
+        except:
+            return sys.exc_info()
 
     def _threads(self):
         """ Calculates maximum number of threads that will be started """
-        if self.threads < len(self.handlers):
-            return self.threads
-        return len(self.handlers)
+        return min(self.threads, len(self.handlers))
 
     def _error(self, exc_info):
         """ Retrieves the error info """
         if self.exc_info:
-            if self.traceback:
-                return exc_info
-            return exc_info[:2]
+            return exc_info if self.traceback else exc_info[:2]
         return exc_info[1]
 
     __iadd__ = handle

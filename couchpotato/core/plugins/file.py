@@ -59,13 +59,22 @@ class FileManager(Plugin):
             log.error('Failed removing unused file: %s', traceback.format_exc())
 
     def showCacheFile(self, route, **kwargs):
-        Env.get('app').add_handlers(".*$", [('%s%s' % (Env.get('api_base'), route), StaticFileHandler, {'path': Env.get('cache_dir')})])
+        Env.get('app').add_handlers(
+            ".*$",
+            [
+                (
+                    f"{Env.get('api_base')}{route}",
+                    StaticFileHandler,
+                    {'path': Env.get('cache_dir')},
+                )
+            ],
+        )
 
     def download(self, url = '', dest = None, overwrite = False, urlopen_kwargs = None):
         if not urlopen_kwargs: urlopen_kwargs = {}
 
         if not dest:  # to Cache
-            dest = os.path.join(Env.get('cache_dir'), '%s.%s' % (md5(url), getExt(url)))
+            dest = os.path.join(Env.get('cache_dir'), f'{md5(url)}.{getExt(url)}')
 
         if not overwrite and os.path.isfile(dest):
             return dest

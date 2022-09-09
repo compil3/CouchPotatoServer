@@ -24,7 +24,7 @@ class CronTrigger(object):
         # Check field names and yank out all None valued fields
         for key, value in list(iteritems(values)):
             if key not in self.FIELD_NAMES:
-                raise TypeError('Invalid field name: %s' % key)
+                raise TypeError(f'Invalid field name: {key}')
             if value is None:
                 del values[key]
 
@@ -134,11 +134,11 @@ class CronTrigger(object):
     def __str__(self):
         options = ["%s='%s'" % (f.name, str(f)) for f in self.fields
                    if not f.is_default]
-        return 'cron[%s]' % (', '.join(options))
+        return f"cron[{', '.join(options)}]"
 
     def __repr__(self):
         options = ["%s='%s'" % (f.name, str(f)) for f in self.fields
                    if not f.is_default]
         if self.start_date:
             options.append("start_date='%s'" % self.start_date.isoformat(' '))
-        return '<%s (%s)>' % (self.__class__.__name__, ', '.join(options))
+        return f"<{self.__class__.__name__} ({', '.join(options)})>"

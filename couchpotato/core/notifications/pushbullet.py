@@ -41,7 +41,7 @@ class Pushbullet(Notification):
             if response:
                 successful += 1
             else:
-                log.error('Unable to push notification to Pushbullet device with ID %s' % device)
+                log.error(f'Unable to push notification to Pushbullet device with ID {device}')
 
         return successful == len(devices)
 
@@ -50,17 +50,14 @@ class Pushbullet(Notification):
 
     def request(self, method, cache = True, **kwargs):
         try:
-            base64string = base64.encodestring('%s:' % self.conf('api_key'))[:-1]
+            base64string = base64.encodestring(f"{self.conf('api_key')}:")[:-1]
 
-            headers = {
-                "Authorization": "Basic %s" % base64string
-            }
+            headers = {"Authorization": f"Basic {base64string}"}
 
             if cache:
                 return self.getJsonData(self.url % method, headers = headers, data = kwargs)
-            else:
-                data = self.urlopen(self.url % method, headers = headers, data = kwargs)
-                return json.loads(data)
+            data = self.urlopen(self.url % method, headers = headers, data = kwargs)
+            return json.loads(data)
 
         except Exception as ex:
             log.error('Pushbullet request failed')

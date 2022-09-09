@@ -28,10 +28,11 @@ class Base(TorrentMagnetProvider):
 
     def search(self, movie, quality):
 
-        if not quality.get('hd', False):
-            return []
-
-        return super(Base, self).search(movie, quality)
+        return (
+            super(Base, self).search(movie, quality)
+            if quality.get('hd', False)
+            else []
+        )
 
     def _search(self, movie, quality, results):
 

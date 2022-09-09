@@ -16,15 +16,16 @@ class NzbIndex(MovieProvider, Base):
         title = fireEvent('library.query', media, include_year = False, single = True)
         year = media['info']['year']
 
-        query = tryUrlencode({
-            'q': '"%s %s" | "%s (%s)"' % (title, year, title, year),
-            'age': Env.setting('retention', 'nzb'),
-            'sort': 'agedesc',
-            'minsize': quality.get('size_min'),
-            'maxsize': quality.get('size_max'),
-            'rating': 1,
-            'max': 250,
-            'more': 1,
-            'complete': 1,
-        })
-        return query
+        return tryUrlencode(
+            {
+                'q': '"%s %s" | "%s (%s)"' % (title, year, title, year),
+                'age': Env.setting('retention', 'nzb'),
+                'sort': 'agedesc',
+                'minsize': quality.get('size_min'),
+                'maxsize': quality.get('size_max'),
+                'rating': 1,
+                'max': 250,
+                'more': 1,
+                'complete': 1,
+            }
+        )

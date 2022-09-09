@@ -30,8 +30,6 @@ class Trakt(Notification):
 
             result = self.call((self.urls['test'] % self.conf('automation_api_key')), post_data)
 
-            return result
-
         else:
 
             post_data = {
@@ -48,14 +46,16 @@ class Trakt(Notification):
             if self.conf('remove_watchlist_enabled'):
                 result = result and self.call((self.urls['unwatchlist'] % self.conf('automation_api_key')), post_data)
 
-            return result
+
+        return result
 
     def call(self, method_url, post_data):
 
         try:
 
-            response = self.getJsonData(self.urls['base'] % method_url, data = post_data, cache_timeout = 1)
-            if response:
+            if response := self.getJsonData(
+                self.urls['base'] % method_url, data=post_data, cache_timeout=1
+            ):
                 if response.get('status') == "success":
                     log.info('Successfully called Trakt')
                     return True

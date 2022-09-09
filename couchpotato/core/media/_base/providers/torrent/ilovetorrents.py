@@ -63,7 +63,15 @@ class Base(TorrentProvider):
 
                     try:
                         pagelinks = soup.findAll(href = re.compile('page'))
-                        page_numbers = [int(re.search('page=(?P<page_number>.+'')', i['href']).group('page_number')) for i in pagelinks]
+                        page_numbers = [
+                            int(
+                                re.search(
+                                    'page=(?P<page_number>.+' ')', i['href']
+                                )['page_number']
+                            )
+                            for i in pagelinks
+                        ]
+
                         total_pages = max(page_numbers)
                     except:
                         pass
@@ -85,7 +93,7 @@ class Base(TorrentProvider):
 
                                 return confirmed + trusted + vip + moderated
 
-                            id = re.search('id=(?P<id>\d+)&', link).group('id')
+                            id = re.search('id=(?P<id>\d+)&', link)['id']
                             url = self.urls['download'] % download
 
                             fileSize = self.parseSize(result.select('td.rowhead')[5].text)
@@ -112,7 +120,7 @@ class Base(TorrentProvider):
         }
 
     def getMoreInfo(self, item):
-        cache_key = 'ilt.%s' % item['id']
+        cache_key = f"ilt.{item['id']}"
         description = self.getCache(cache_key)
 
         if not description:

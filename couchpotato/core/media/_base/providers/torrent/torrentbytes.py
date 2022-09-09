@@ -36,10 +36,12 @@ class Base(TorrentProvider):
 
     def _searchOnTitle(self, title, movie, quality, results):
 
-        url = self.urls['search'] % (tryUrlencode('%s %s' % (title.replace(':', ''), movie['info']['year'])), self.getCatId(quality)[0])
-        data = self.getHTMLData(url)
+        url = self.urls['search'] % (
+            tryUrlencode(f"{title.replace(':', '')} {movie['info']['year']}"),
+            self.getCatId(quality)[0],
+        )
 
-        if data:
+        if data := self.getHTMLData(url):
             html = BeautifulSoup(data)
 
             try:

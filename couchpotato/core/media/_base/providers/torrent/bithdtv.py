@@ -27,11 +27,9 @@ class Base(TorrentProvider):
 
         query = self.buildUrl(media, quality)
 
-        url = "%s&%s" % (self.urls['search'], query)
+        url = f"{self.urls['search']}&{query}"
 
-        data = self.getHTMLData(url)
-
-        if data:
+        if data := self.getHTMLData(url):
             # Remove BiT-HDTV's output garbage so outdated BS4 versions successfully parse the HTML
             split_data = data.partition('-->')
             if '## SELECT COUNT(' in split_data[0]:
@@ -72,7 +70,10 @@ class Base(TorrentProvider):
         }
 
     def getMoreInfo(self, item):
-        full_description = self.getCache('bithdtv.%s' % item['id'], item['detail_url'], cache_timeout = 25920000)
+        full_description = self.getCache(
+            f"bithdtv.{item['id']}", item['detail_url'], cache_timeout=25920000
+        )
+
         html = BeautifulSoup(full_description)
         nfo_pre = html.find('table', attrs = {'class': 'detail'})
         description = toUnicode(nfo_pre.text) if nfo_pre else ''

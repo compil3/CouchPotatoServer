@@ -42,15 +42,13 @@ class Bluray(Automation, RSS):
                         name = table.h3.get_text().lower().split('blu-ray')[0].strip()
                         year = table.small.get_text().split('|')[1].strip()
 
-                        if not name.find('/') == -1:  # make sure it is not a double movie release
+                        if name.find('/') != -1:  # make sure it is not a double movie release
                             continue
 
                         if tryInt(year) < self.getMinimal('year'):
                             continue
 
-                        imdb = self.search(name, year)
-
-                        if imdb:
+                        if imdb := self.search(name, year):
                             if self.isMinimalMovie(imdb):
                                 movies.append(imdb['imdb'])
                 except:
@@ -65,15 +63,13 @@ class Bluray(Automation, RSS):
             name = self.getTextElement(movie, 'title').lower().split('blu-ray')[0].strip('(').rstrip()
             year = self.getTextElement(movie, 'description').split('|')[1].strip('(').strip()
 
-            if not name.find('/') == -1:  # make sure it is not a double movie release
+            if name.find('/') != -1:  # make sure it is not a double movie release
                 continue
 
             if tryInt(year) < self.getMinimal('year'):
                 continue
 
-            imdb = self.search(name, year)
-
-            if imdb:
+            if imdb := self.search(name, year):
                 if self.isMinimalMovie(imdb):
                     movies.append(imdb['imdb'])
 
@@ -91,13 +87,10 @@ class Bluray(Automation, RSS):
             name = self.getTextElement(movie, 'title').lower().split('blu-ray')[0].strip('(').rstrip()
             year = self.getTextElement(movie, 'description').split('|')[1].strip('(').strip()
 
-            if not name.find('/') == -1: # make sure it is not a double movie release
+            if name.find('/') != -1: # make sure it is not a double movie release
                 continue
 
-            movie = self.search(name, year)
-
-            if movie:
-
+            if movie := self.search(name, year):
                 if movie.get('imdb') in movie_ids:
                     continue
 

@@ -18,9 +18,9 @@ class AppleTrailers(UserscriptBase):
             return
 
         name = re.search("trailerTitle.*=.*\'(?P<name>.*)\';", data)
-        name = name.group('name').decode('string_escape')
+        name = name['name'].decode('string_escape')
 
         date = re.search("releaseDate.*=.*\'(?P<date>.*)\';", data)
-        year = date.group('date')[:4]
+        year = date['date'][:4]
 
         return self.search(name, year)

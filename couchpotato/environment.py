@@ -41,21 +41,28 @@ class Env(object):
     @staticmethod
     def get(attr, unicode = False):
         if unicode:
-            return toUnicode(getattr(Env, '_' + attr))
+            return toUnicode(getattr(Env, f'_{attr}'))
         else:
-            return getattr(Env, '_' + attr)
+            return getattr(Env, f'_{attr}')
 
     @staticmethod
     def all():
-        ret = ''
-        for attr in ['encoding', 'debug', 'args', 'app_dir', 'data_dir', 'desktop', 'options']:
-            ret += '%s=%s ' % (attr, Env.get(attr))
-
-        return ret
+        return ''.join(
+            f'{attr}={Env.get(attr)} '
+            for attr in [
+                'encoding',
+                'debug',
+                'args',
+                'app_dir',
+                'data_dir',
+                'desktop',
+                'options',
+            ]
+        )
 
     @staticmethod
     def set(attr, value):
-        return setattr(Env, '_' + attr, value)
+        return setattr(Env, f'_{attr}', value)
 
     @staticmethod
     def setting(attr, section = 'core', value = None, default = '', type = None):
@@ -78,17 +85,14 @@ class Env(object):
         s = Env.get('settings')
         if value is None:
             v = s.getProperty(identifier)
-            return v if v else default
+            return v or default
 
         s.setProperty(identifier, value)
 
     @staticmethod
     def getPermission(setting_type):
-        perm = Env.get('settings').get('permission_%s' % setting_type, default = '0777')
-        if perm[0] == '0':
-            return int(perm, 8)
-        else:
-            return int(perm)
+        perm = Env.get('settings').get(f'permission_{setting_type}', default = '0777')
+        return int(perm, 8) if perm[0] == '0' else int(perm)
 
     @staticmethod
     def fireEvent(*args, **kwargs):

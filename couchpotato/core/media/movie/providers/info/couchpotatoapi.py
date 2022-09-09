@@ -45,11 +45,16 @@ class CouchPotatoApi(MovieProvider):
 
     def getMessages(self, last_check = 0):
 
-        data = self.getJsonData(self.urls['messages'] % tryUrlencode({
-            'last_check': last_check,
-        }), headers = self.getRequestHeaders(), cache_timeout = 10)
-
-        return data
+        return self.getJsonData(
+            self.urls['messages']
+            % tryUrlencode(
+                {
+                    'last_check': last_check,
+                }
+            ),
+            headers=self.getRequestHeaders(),
+            cache_timeout=10,
+        )
 
     def getSourceUrl(self, repo = None, repo_name = None, branch = None):
         return self.getJsonData(self.urls['updater'] % tryUrlencode({
@@ -59,7 +64,10 @@ class CouchPotatoApi(MovieProvider):
         }), headers = self.getRequestHeaders())
 
     def search(self, q, limit = 5):
-        return self.getJsonData(self.urls['search'] % tryUrlencode(q) + ('?limit=%s' % limit), headers = self.getRequestHeaders())
+        return self.getJsonData(
+            self.urls['search'] % tryUrlencode(q) + f'?limit={limit}',
+            headers=self.getRequestHeaders(),
+        )
 
     def validate(self, name = None):
 
@@ -74,8 +82,9 @@ class CouchPotatoApi(MovieProvider):
         if not identifier:
             return
 
-        data = self.getJsonData(self.urls['is_movie'] % identifier, headers = self.getRequestHeaders())
-        if data:
+        if data := self.getJsonData(
+            self.urls['is_movie'] % identifier, headers=self.getRequestHeaders()
+        ):
             return data.get('is_movie', True)
 
         return True
@@ -85,9 +94,10 @@ class CouchPotatoApi(MovieProvider):
         if not identifier:
             return
 
-        result = self.getJsonData(self.urls['info'] % identifier, headers = self.getRequestHeaders())
-        if result:
-            return dict((k, v) for k, v in result.items() if v)
+        if result := self.getJsonData(
+            self.urls['info'] % identifier, headers=self.getRequestHeaders()
+        ):
+            return {k: v for k, v in result.items() if v}
 
         return {}
 
@@ -113,8 +123,8 @@ class CouchPotatoApi(MovieProvider):
 
     def getRequestHeaders(self):
         return {
-            'X-CP-Version': fireEvent('app.version', single = True),
+            'X-CP-Version': fireEvent('app.version', single=True),
             'X-CP-API': self.api_version,
             'X-CP-Time': time.time(),
-            'X-CP-Identifier': '+%s' % Env.setting('api_key', 'core')[:10],  # Use first 10 as identifier, so we don't need to use IP address in api stats
+            'X-CP-Identifier': f"+{Env.setting('api_key', 'core')[:10]}",
         }

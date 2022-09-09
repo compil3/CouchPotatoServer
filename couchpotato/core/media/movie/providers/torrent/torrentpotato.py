@@ -17,4 +17,4 @@ class TorrentPotato(MovieProvider, Base):
             'passkey': host['pass_key'],
             'imdbid': getIdentifier(media),
         })
-        return '%s?%s' % (host['host'], arguments)
+        return f"{host['host']}?{arguments}"

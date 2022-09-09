@@ -30,7 +30,7 @@ class TheMovieDb(MovieProvider):
             return False
 
         search_string = simplifyString(q)
-        cache_key = 'tmdb.cache.%s.%s' % (search_string, limit)
+        cache_key = f'tmdb.cache.{search_string}.{limit}'
         results = self.getCache(cache_key)
 
         if not results:
@@ -69,7 +69,7 @@ class TheMovieDb(MovieProvider):
         if not identifier:
             return {}
 
-        cache_key = 'tmdb.cache.%s%s' % (identifier, '.ex' if extended else '')
+        cache_key = f"tmdb.cache.{identifier}{'.ex' if extended else ''}"
         result = self.getCache(cache_key)
 
         if not result:
@@ -92,7 +92,7 @@ class TheMovieDb(MovieProvider):
 
     def parseMovie(self, movie, extended = True):
 
-        cache_key = 'tmdb.cache.%s%s' % (movie.id, '.ex' if extended else '')
+        cache_key = f"tmdb.cache.{movie.id}{'.ex' if extended else ''}"
         movie_data = self.getCache(cache_key)
 
         if not movie_data:
@@ -150,7 +150,7 @@ class TheMovieDb(MovieProvider):
                 'actor_roles': actors
             }
 
-            movie_data = dict((k, v) for k, v in movie_data.items() if v)
+            movie_data = {k: v for k, v in movie_data.items() if v}
 
             # Add alternative names
             if movie_data['original_title'] and movie_data['original_title'] not in movie_data['titles']:
@@ -188,13 +188,11 @@ class TheMovieDb(MovieProvider):
         image_urls = []
         try:
             images = getattr(movie, type)
-            if n < 0 or n > len(images):
-                num_images = len(images)
-            else:
-                num_images = n
-
-            for i in range(int(skipfirst), num_images + int(skipfirst)):
-                image_urls.append(images[i].geturl(size = size))
+            num_images = len(images) if n < 0 or n > len(images) else n
+            image_urls.extend(
+                images[i].geturl(size=size)
+                for i in range(int(skipfirst), num_images + int(skipfirst))
+            )
 
         except:
             log.debug('Failed getting %i %s.%s for "%s"', (n, type, size, ss(str(movie))))

@@ -28,11 +28,7 @@ class Trakt(Automation):
 
     def getIMDBids(self):
 
-        movies = []
-        for movie in self.getWatchlist():
-            movies.append(movie.get('imdb_id'))
-
-        return movies
+        return [movie.get('imdb_id') for movie in self.getWatchlist()]
 
     def getWatchlist(self):
         method = (self.urls['watchlist'] % self.conf('automation_api_key')) + self.conf('automation_username')
@@ -42,10 +38,13 @@ class Trakt(Automation):
 
         headers = {}
         if self.conf('automation_password'):
-            headers['Authorization'] = 'Basic %s' % base64.encodestring('%s:%s' % (self.conf('automation_username'), self.conf('automation_password')))[:-1]
+            headers[
+                'Authorization'
+            ] = f"""Basic {base64.encodestring(f"{self.conf('automation_username')}:{self.conf('automation_password')}")[:-1]}"""
+
 
         data = self.getJsonData(self.urls['base'] + method_url, headers = headers)
-        return data if data else []
+        return data or []
 
 
 config = [{

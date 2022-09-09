@@ -93,11 +93,12 @@ class Settings(object):
             self.setDefault(section_name, option_name, option.get('default', ''))
 
             # Migrate old settings from old location to the new location
-            if option.get('migrate_from'):
-                if self.p.has_option(option.get('migrate_from'), option_name):
-                    previous_value = self.p.get(option.get('migrate_from'), option_name)
-                    self.p.set(section_name, option_name, previous_value)
-                    self.p.remove_option(option.get('migrate_from'), option_name)
+            if option.get('migrate_from') and self.p.has_option(
+                option.get('migrate_from'), option_name
+            ):
+                previous_value = self.p.get(option.get('migrate_from'), option_name)
+                self.p.set(section_name, option_name, previous_value)
+                self.p.remove_option(option.get('migrate_from'), option_name)
 
             if option.get('type'):
                 self.setType(section_name, option_name, option.get('type'))
@@ -112,10 +113,11 @@ class Settings(object):
         try:
 
             try: type = self.types[section][option]
-            except: type = 'unicode' if not type else type
+            except:
+                type = type or 'unicode'
 
-            if hasattr(self, 'get%s' % type.capitalize()):
-                return getattr(self, 'get%s' % type.capitalize())(section, option)
+            if hasattr(self, f'get{type.capitalize()}'):
+                return getattr(self, f'get{type.capitalize()}')(section, option)
             else:
                 return self.getUnicode(section, option)
 
@@ -182,10 +184,11 @@ class Settings(object):
 
     def addOptions(self, section_name, options):
 
-        if not self.options.get(section_name):
-            self.options[section_name] = options
-        else:
-            self.options[section_name] = mergeDicts(self.options[section_name], options)
+        self.options[section_name] = (
+            mergeDicts(self.options[section_name], options)
+            if self.options.get(section_name)
+            else options
+        )
 
     def getOptions(self):
         return self.options
@@ -203,14 +206,14 @@ class Settings(object):
         value = kwargs.get('value')
 
         # See if a value handler is attached, use that as value
-        new_value = fireEvent('setting.save.%s.%s' % (section, option), value, single = True)
+        new_value = fireEvent(f'setting.save.{section}.{option}', value, single = True)
 
-        self.set(section, option, (new_value if new_value else value).encode('unicode_escape'))
+        self.set(section, option, (new_value or value).encode('unicode_escape'))
         self.save()
 
         # After save (for re-interval etc)
-        fireEvent('setting.save.%s.%s.after' % (section, option), single = True)
-        fireEvent('setting.save.%s.*.after' % section, single = True)
+        fireEvent(f'setting.save.{section}.{option}.after', single = True)
+        fireEvent(f'setting.save.{section}.*.after', single = True)
 
         return {
             'success': True,

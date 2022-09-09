@@ -85,7 +85,7 @@ class NZBVortex(DownloaderBase):
         log.info('%s failed downloading, deleting...', release_download['name'])
 
         try:
-            self.call('nzb/%s/cancel' % release_download['id'])
+            self.call(f"nzb/{release_download['id']}/cancel")
         except:
             log.error('Failed deleting: %s', traceback.format_exc(0))
             return False
@@ -96,7 +96,10 @@ class NZBVortex(DownloaderBase):
 
         nonce = self.call('auth/nonce', auth = False).get('authNonce')
         cnonce = uuid4().hex
-        hashed = b64encode(hashlib.sha256('%s:%s:%s' % (nonce, cnonce, self.conf('api_key'))).digest())
+        hashed = b64encode(
+            hashlib.sha256(f"{nonce}:{cnonce}:{self.conf('api_key')}").digest()
+        )
+
 
         params = {
             'nonce': nonce,
@@ -130,16 +133,12 @@ class NZBVortex(DownloaderBase):
         url = cleanHost(self.conf('host'), ssl = self.conf('ssl')) + 'api/' + call
 
         try:
-            data = self.urlopen('%s?%s' % (url, params), *args, **kwargs)
-
-            if data:
+            if data := self.urlopen(f'{url}?{params}', *args, **kwargs):
                 return json.loads(data)
         except URLError as e:
-            if hasattr(e, 'code') and e.code == 403:
-                # Try login and do again
-                if not repeat:
-                    self.login()
-                    return self.call(call, parameters = parameters, repeat = True, **kwargs)
+            if hasattr(e, 'code') and e.code == 403 and not repeat:
+                self.login()
+                return self.call(call, parameters = parameters, repeat = True, **kwargs)
 
             log.error('Failed to parsing %s: %s', (self.getName(), traceback.format_exc()))
         except:
@@ -179,10 +178,9 @@ class HTTPSConnection(httplib.HTTPSConnection):
             if hasattr(self, '_tunnel_host'):
                 self.sock = sock
                 self._tunnel()
-        else:
-            if self._tunnel_host:
-                self.sock = sock
-                self._tunnel()
+        elif self._tunnel_host:
+            self.sock = sock
+            self._tunnel()
 
         self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file, ssl_version = ssl.PROTOCOL_TLSv1)
 

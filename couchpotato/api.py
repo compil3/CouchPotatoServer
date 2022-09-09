@@ -76,7 +76,7 @@ def addNonBlockApiView(route, func_tuple, docs = None, **kwargs):
     api_nonblock[route] = func_tuple
 
     if docs:
-        api_docs[route[4:] if route[0:4] == 'api.' else route] = docs
+        api_docs[route[4:] if route[:4] == 'api.' else route] = docs
     else:
         api_docs_missing.append(route)
 
@@ -100,9 +100,10 @@ class ApiHandler(RequestHandler):
 
         try:
 
-            kwargs = {}
-            for x in self.request.arguments:
-                kwargs[x] = urllib.unquote(self.get_argument(x))
+            kwargs = {
+                x: urllib.unquote(self.get_argument(x))
+                for x in self.request.arguments
+            }
 
             # Split array arguments
             kwargs = getParams(kwargs)
@@ -131,11 +132,10 @@ class ApiHandler(RequestHandler):
 
         if not self.request.connection.stream.closed():
             try:
-                # Check JSONP callback
-                jsonp_callback = self.get_argument('callback_func', default = None)
-
-                if jsonp_callback:
-                    self.write(str(jsonp_callback) + '(' + json.dumps(result) + ')')
+                if jsonp_callback := self.get_argument(
+                    'callback_func', default=None
+                ):
+                    self.write(f'{str(jsonp_callback)}({json.dumps(result)})')
                     self.set_header("Content-Type", "text/javascript")
                     self.finish()
                 elif isinstance(result, tuple) and result[0] == 'redirect':
@@ -159,6 +159,6 @@ def addApiView(route, func, static = False, docs = None, **kwargs):
         api_locks[route] = threading.Lock()
 
     if docs:
-        api_docs[route[4:] if route[0:4] == 'api.' else route] = docs
+        api_docs[route[4:] if route[:4] == 'api.' else route] = docs
     else:
         api_docs_missing.append(route)
