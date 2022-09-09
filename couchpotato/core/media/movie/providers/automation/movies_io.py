@@ -31,12 +31,10 @@ class MoviesIO(Automation, RSS):
             for movie in rss_movies:
 
                 nameyear = fireEvent('scanner.name_year', self.getTextElement(movie, 'title'), single = True)
-                imdb = self.search(nameyear.get('name'), nameyear.get('year'), imdb_only = True)
-
-                if not imdb:
-                    continue
-
-                movies.append(imdb)
+                if imdb := self.search(
+                    nameyear.get('name'), nameyear.get('year'), imdb_only=True
+                ):
+                    movies.append(imdb)
 
         return movies
 

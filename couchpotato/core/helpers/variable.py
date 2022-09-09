@@ -55,10 +55,7 @@ def getDownloadDir():
     if 'darwin' in platform.platform().lower():
         return os.path.join(user_dir, 'Downloads')
 
-    if os.name == 'nt':
-        return os.path.join(user_dir, 'Downloads')
-
-    return user_dir
+    return os.path.join(user_dir, 'Downloads') if os.name == 'nt' else user_dir
 
 
 def getDataDir():
@@ -95,14 +92,13 @@ def mergeDicts(a, b, prepend_list = False):
         for key in current_src:
             if key not in current_dst:
                 current_dst[key] = current_src[key]
+            elif isDict(current_src[key]) and isDict(current_dst[key]):
+                stack.append((current_dst[key], current_src[key]))
+            elif isinstance(current_src[key], list) and isinstance(current_dst[key], list):
+                current_dst[key] = current_src[key] + current_dst[key] if prepend_list else current_dst[key] + current_src[key]
+                current_dst[key] = removeListDuplicates(current_dst[key])
             else:
-                if isDict(current_src[key]) and isDict(current_dst[key]):
-                    stack.append((current_dst[key], current_src[key]))
-                elif isinstance(current_src[key], list) and isinstance(current_dst[key], list):
-                    current_dst[key] = current_src[key] + current_dst[key] if prepend_list else current_dst[key] + current_src[key]
-                    current_dst[key] = removeListDuplicates(current_dst[key])
-                else:
-                    current_dst[key] = current_src[key]
+                current_dst[key] = current_src[key]
     return dst
 
 
@@ -115,10 +111,7 @@ def removeListDuplicates(seq):
 
 
 def flattenList(l):
-    if isinstance(l, list):
-        return sum(map(flattenList, l))
-    else:
-        return l
+    return sum(map(flattenList, l)) if isinstance(l, list) else l
 
 
 def md5(text):
@@ -157,7 +150,7 @@ def cleanHost(host, protocol = True, ssl = False, username = None, password = No
     'localhost:80'
     """
 
-    if not '://' in host and protocol:
+    if '://' not in host and protocol:
         host = ('https://' if ssl else 'http://') + host
 
     if not protocol:
@@ -165,11 +158,10 @@ def cleanHost(host, protocol = True, ssl = False, username = None, password = No
 
     if protocol and username and password:
         try:
-            auth = re.findall('^(?:.+?//)(.+?):(.+?)@(?:.+)$', host)
-            if auth:
+            if auth := re.findall('^(?:.+?//)(.+?):(.+?)@(?:.+)$', host):
                 log.error('Cleanhost error: auth already defined in url: %s, please remove BasicAuth from url.', host)
             else:
-                host = host.replace('://', '://%s:%s@' % (username, password), 1)
+                host = host.replace('://', f'://{username}:{password}@', 1)
         except:
             pass
 
@@ -182,16 +174,10 @@ def cleanHost(host, protocol = True, ssl = False, username = None, password = No
 
 def getImdb(txt, check_inside = False, multiple = False):
 
-    if not check_inside:
-        txt = simplifyString(txt)
-    else:
-        txt = ss(txt)
-
+    txt = ss(txt) if check_inside else simplifyString(txt)
     if check_inside and os.path.isfile(txt):
-        output = open(txt, 'r')
-        txt = output.read()
-        output.close()
-
+        with open(txt, 'r') as output:
+            txt = output.read()
     try:
         ids = re.findall('(tt\d{4,7})', txt)
 
@@ -225,9 +211,7 @@ def natsortKey(string_):
 
 
 def toIterable(value):
-    if isinstance(value, collections.Iterable):
-        return value
-    return [value]
+    return value if isinstance(value, collections.Iterable) else [value]
 
 
 def getIdentifier(media):
@@ -271,7 +255,7 @@ def possibleTitles(raw_title):
 
 
 def randomString(size = 8, chars = string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for x in range(size))
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 def splitString(str, split_on = ',', clean = True):
@@ -289,7 +273,7 @@ def removeDuplicate(l):
 
 
 def dictIsSubset(a, b):
-    return all([k in b and b[k] == v for k, v in a.items()])
+    return all(k in b and b[k] == v for k, v in a.items())
 
 
 # Returns True if sub_folder is the same as or inside base_folder
@@ -359,21 +343,23 @@ def getFreeSpace(directories):
     for folder in directories:
 
         size = None
-        if os.path.isdir(folder):
-            if os.name == 'nt':
+        if os.name == 'nt':
+            if os.path.isdir(folder):
                 _, total, free = ctypes.c_ulonglong(), ctypes.c_ulonglong(), \
                                    ctypes.c_ulonglong()
-                if sys.version_info >= (3,) or isinstance(folder, unicode):
-                    fun = ctypes.windll.kernel32.GetDiskFreeSpaceExW #@UndefinedVariable
-                else:
-                    fun = ctypes.windll.kernel32.GetDiskFreeSpaceExA #@UndefinedVariable
+                fun = (
+                    ctypes.windll.kernel32.GetDiskFreeSpaceExW
+                    if sys.version_info >= (3,) or isinstance(folder, unicode)
+                    else ctypes.windll.kernel32.GetDiskFreeSpaceExA
+                )
+
                 ret = fun(folder, ctypes.byref(_), ctypes.byref(total), ctypes.byref(free))
                 if ret == 0:
                     raise ctypes.WinError()
                 return [total.value, free.value]
-            else:
-                s = os.statvfs(folder)
-                size = [s.f_blocks * s.f_frsize / (1024 * 1024), (s.f_bavail * s.f_frsize) / (1024 * 1024)]
+        elif os.path.isdir(folder):
+            s = os.statvfs(folder)
+            size = [s.f_blocks * s.f_frsize / (1024 * 1024), (s.f_bavail * s.f_frsize) / (1024 * 1024)]
 
         if single: return size
 

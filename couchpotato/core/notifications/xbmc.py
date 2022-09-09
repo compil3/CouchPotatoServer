@@ -132,7 +132,7 @@ class XBMC(Notification):
 
     def notifyXBMCnoJSON(self, host, data):
 
-        server = 'http://%s/xbmcCmds/' % host
+        server = f'http://{host}/xbmcCmds/'
 
         # Notification(title, message [, timeout , image])
         cmd = "xbmcHttp?command=ExecBuiltIn(Notification(%s,%s,'',%s))" % (urllib.quote(getTitle(data)), urllib.quote(data['message']), urllib.quote(self.getNotificationImage('medium')))
@@ -145,8 +145,11 @@ class XBMC(Notification):
 
         # authentication support
         if self.conf('password'):
-            base64string = base64.encodestring('%s:%s' % (self.conf('username'), self.conf('password'))).replace('\n', '')
-            headers['Authorization'] = 'Basic %s' % base64string
+            base64string = base64.encodestring(
+                f"{self.conf('username')}:{self.conf('password')}"
+            ).replace('\n', '')
+
+            headers['Authorization'] = f'Basic {base64string}'
 
         try:
             log.debug('Sending non-JSON-type request to %s: %s', (host, data))
@@ -180,18 +183,21 @@ class XBMC(Notification):
             return [{'result': 'Error'}]
 
     def request(self, host, do_requests):
-        server = 'http://%s/jsonrpc' % host
+        server = f'http://{host}/jsonrpc'
 
         data = []
         for req in do_requests:
             method, id, kwargs = req
 
-            data.append({
-                'method': method,
-                'params': kwargs,
-                'jsonrpc': '2.0',
-                'id': id if id else method,
-            })
+            data.append(
+                {
+                    'method': method,
+                    'params': kwargs,
+                    'jsonrpc': '2.0',
+                    'id': id or method,
+                }
+            )
+
         data = json.dumps(data)
 
         headers = {
@@ -199,8 +205,11 @@ class XBMC(Notification):
         }
 
         if self.conf('password'):
-            base64string = base64.encodestring('%s:%s' % (self.conf('username'), self.conf('password'))).replace('\n', '')
-            headers['Authorization'] = 'Basic %s' % base64string
+            base64string = base64.encodestring(
+                f"{self.conf('username')}:{self.conf('password')}"
+            ).replace('\n', '')
+
+            headers['Authorization'] = f'Basic {base64string}'
 
         try:
             log.debug('Sending request to %s: %s', (host, data))

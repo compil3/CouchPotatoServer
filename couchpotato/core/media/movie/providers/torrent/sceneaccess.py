@@ -20,10 +20,8 @@ class SceneAccess(MovieProvider, Base):
         cat_id = self.getCatId(quality)[0]
         url = self.urls['search'] % (cat_id, cat_id)
 
-        arguments = tryUrlencode({
-            'search': '%s %s' % (title, media['info']['year']),
-            'method': 2,
-        })
-        query = "%s&%s" % (url, arguments)
+        arguments = tryUrlencode(
+            {'search': f"{title} {media['info']['year']}", 'method': 2}
+        )
 
-        return query
+        return f"{url}&{arguments}"

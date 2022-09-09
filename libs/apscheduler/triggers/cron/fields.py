@@ -59,8 +59,7 @@ class BaseField(object):
 
     def compile_expression(self, expr):
         for compiler in self.COMPILERS:
-            match = compiler.value_re.match(expr)
-            if match:
+            if match := compiler.value_re.match(expr):
                 compiled_expr = compiler(**match.groupdict())
                 self.expressions.append(compiled_expr)
                 return

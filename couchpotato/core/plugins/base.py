@@ -68,7 +68,9 @@ class Plugin(object):
 
     def conf(self, attr, value = None, default = None, section = None):
         class_name = self.getName().lower().split(':')[0].lower()
-        return Env.setting(attr, section = section if section else class_name, value = value, default = default)
+        return Env.setting(
+            attr, section=section or class_name, value=value, default=default
+        )
 
     def deleteConf(self, attr):
         return Env._settings.delete(attr, section = self.getName().lower().split(':')[0].lower())
@@ -98,7 +100,7 @@ class Plugin(object):
         class_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
         # View path
-        path = 'static/plugin/%s/' % class_name
+        path = f'static/plugin/{class_name}/'
 
         # Add handler to Tornado
         Env.get('app').add_handlers(".*$", [(Env.get('web_base') + path + '(.*)', StaticFileHandler, {'path': static_folder})])
@@ -108,7 +110,11 @@ class Plugin(object):
             for f in glob.glob(os.path.join(self.plugin_path, 'static', '*')):
                 ext = getExt(f)
                 if ext in ['js', 'css']:
-                    fireEvent('register_%s' % ('script' if ext in 'js' else 'style'), path + os.path.basename(f), f)
+                    fireEvent(
+                        f"register_{'script' if ext in 'js' else 'style'}",
+                        path + os.path.basename(f),
+                        f,
+                    )
 
     def createFile(self, path, content, binary = False):
         path = sp(path)
@@ -119,9 +125,8 @@ class Plugin(object):
             log.debug('%s already exists, overwriting file with new version', path)
 
         try:
-            f = open(path, 'w+' if not binary else 'w+b')
-            f.write(content)
-            f.close()
+            with open(path, 'w+b' if binary else 'w+') as f:
+                f.write(content)
             os.chmod(path, Env.getPermission('file'))
         except:
             log.error('Unable writing to file "%s": %s', (path, traceback.format_exc()))
@@ -174,9 +179,10 @@ class Plugin(object):
 
         # Fill in some headers
         parsed_url = urlparse(url)
-        host = '%s%s' % (parsed_url.hostname, (':' + str(parsed_url.port) if parsed_url.port else ''))
+        host = f"{parsed_url.hostname}{f':{str(parsed_url.port)}' if parsed_url.port else ''}"
 
-        headers['Referer'] = headers.get('Referer', '%s://%s' % (parsed_url.scheme, host))
+
+        headers['Referer'] = headers.get('Referer', f'{parsed_url.scheme}://{host}')
         headers['Host'] = headers.get('Host', host)
         headers['User-Agent'] = headers.get('User-Agent', self.user_agent)
         headers['Accept-encoding'] = headers.get('Accept-encoding', 'gzip')
@@ -209,7 +215,15 @@ class Plugin(object):
             }
             method = 'post' if len(data) > 0 or files else 'get'
 
-            log.info('Opening url: %s %s, data: %s', (method, url, [x for x in data.keys()] if isinstance(data, dict) else 'with data'))
+            log.info(
+                'Opening url: %s %s, data: %s',
+                (
+                    method,
+                    url,
+                    list(data.keys()) if isinstance(data, dict) else 'with data',
+                ),
+            )
+
             response = r.request(method, url, **kwargs)
 
             if response.status_code == requests.codes.ok:
@@ -258,10 +272,10 @@ class Plugin(object):
                 time.sleep(wait)
 
     def beforeCall(self, handler):
-        self.isRunning('%s.%s' % (self.getName(), handler.__name__))
+        self.isRunning(f'{self.getName()}.{handler.__name__}')
 
     def afterCall(self, handler):
-        self.isRunning('%s.%s' % (self.getName(), handler.__name__), False)
+        self.isRunning(f'{self.getName()}.{handler.__name__}', False)
 
     def doShutdown(self, *args, **kwargs):
         self.shuttingDown(True)
@@ -288,12 +302,11 @@ class Plugin(object):
 
     def getCache(self, cache_key, url = None, **kwargs):
 
-        use_cache = not len(kwargs.get('data', {})) > 0 and not kwargs.get('files')
+        use_cache = len(kwargs.get('data', {})) <= 0 and not kwargs.get('files')
 
         if use_cache:
             cache_key_md5 = md5(cache_key)
-            cache = Env.get('cache').get(cache_key_md5)
-            if cache:
+            if cache := Env.get('cache').get(cache_key_md5):
                 if not Env.get('dev'): log.debug('Getting cache %s', cache_key)
                 return cache
 
@@ -326,27 +339,25 @@ class Plugin(object):
         release_name = data.get('name')
         tag = self.cpTag(media)
 
-        # Check if password is filename
-        name_password = scanForPassword(data.get('name'))
-        if name_password:
+        if name_password := scanForPassword(data.get('name')):
             release_name, password = name_password
             tag += '{{%s}}' % password
         elif data.get('password'):
             tag += '{{%s}}' % data.get('password')
 
         max_length = 127 - len(tag)  # Some filesystems don't support 128+ long filenames
-        return '%s%s' % (toSafeString(toUnicode(release_name)[:max_length]), tag)
+        return f'{toSafeString(toUnicode(release_name)[:max_length])}{tag}'
 
     def createFileName(self, data, filedata, media):
         name = self.createNzbName(data, media)
         if data.get('protocol') == 'nzb' and 'DOCTYPE nzb' not in filedata and '</nzb>' not in filedata:
-            return '%s.%s' % (name, 'rar')
-        return '%s.%s' % (name, data.get('protocol'))
+            return f'{name}.rar'
+        return f"{name}.{data.get('protocol')}"
 
     def cpTag(self, media):
         if Env.setting('enabled', 'renamer'):
             identifier = getIdentifier(media)
-            return '.cp(' + identifier + ')' if identifier else ''
+            return f'.cp({identifier})' if identifier else ''
 
         return ''
 

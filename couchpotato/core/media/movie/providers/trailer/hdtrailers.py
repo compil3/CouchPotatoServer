@@ -29,7 +29,10 @@ class HDTrailers(TrailerProvider):
 
         url = self.urls['api'] % self.movieUrlName(movie_name)
         try:
-            data = self.getCache('hdtrailers.%s' % group['identifier'], url, show_error = False)
+            data = self.getCache(
+                f"hdtrailers.{group['identifier']}", url, show_error=False
+            )
+
         except HTTPError:
             log.debug('No page found for: %s', movie_name)
             data = None
@@ -59,7 +62,10 @@ class HDTrailers(TrailerProvider):
 
         url = "%s?%s" % (self.urls['backup'], tryUrlencode({'s':movie_name}))
         try:
-            data = self.getCache('hdtrailers.alt.%s' % group['identifier'], url, show_error = False)
+            data = self.getCache(
+                f"hdtrailers.alt.{group['identifier']}", url, show_error=False
+            )
+
         except HTTPError:
             log.debug('No alternative page found for: %s', movie_name)
             data = None
@@ -98,7 +104,12 @@ class HDTrailers(TrailerProvider):
                 if 'clips' in trtext:
                     break
 
-                if 'trailer' in trtext and not 'clip' in trtext and provider in trtext and not '3d' in trtext:
+                if (
+                    'trailer' in trtext
+                    and 'clip' not in trtext
+                    and provider in trtext
+                    and '3d' not in trtext
+                ):
                     if 'trailer' not in tr.find('span', 'standardTrailerName').text.lower():
                         continue
                     resolutions = tr.find_all('td', attrs = {'class':'bottomTableResolution'})
@@ -119,6 +130,6 @@ class HDTrailers(TrailerProvider):
 
         try:
             int(name)
-            return '-' + name
+            return f'-{name}'
         except:
             return name

@@ -118,11 +118,12 @@ class Release(Plugin):
         try:
             db = get_db()
 
-            release_identifier = '%s.%s.%s' % (group['identifier'], group['meta_data'].get('audio', 'unknown'), group['meta_data']['quality']['identifier'])
+            release_identifier = f"{group['identifier']}.{group['meta_data'].get('audio', 'unknown')}.{group['meta_data']['quality']['identifier']}"
+
 
             # Add movie if it doesn't exist
             try:
-                media = db.get('media', 'imdb-%s' % group['identifier'], with_doc = True)['doc']
+                media = db.get('media', f"imdb-{group['identifier']}", with_doc = True)['doc']
             except:
                 media = fireEvent('movie.add', params = {
                     'identifier': group['identifier'],
@@ -168,7 +169,12 @@ class Release(Plugin):
                 })
 
             # Empty out empty file groups
-            release['files'] = dict((k, [toUnicode(x) for x in v]) for k, v in group['files'].items() if v)
+            release['files'] = {
+                k: [toUnicode(x) for x in v]
+                for k, v in group['files'].items()
+                if v
+            }
+
             db.update(release)
 
             fireEvent('media.restatus', media['_id'], single = True)
@@ -324,10 +330,10 @@ class Release(Plugin):
                 rls['download_info'] = download_result
                 db.update(rls)
 
-            log_movie = '%s (%s) in %s' % (getTitle(media), media['info']['year'], rls['quality'])
+            log_movie = f"{getTitle(media)} ({media['info']['year']}) in {rls['quality']}"
             snatch_message = 'Snatched "%s": %s' % (data.get('name'), log_movie)
             log.info(snatch_message)
-            fireEvent('%s.snatched' % data['type'], message = snatch_message, data = rls)
+            fireEvent(f"{data['type']}.snatched", message = snatch_message, data = rls)
 
             # Mark release as snatched
             if renamer_enabled:
@@ -511,8 +517,7 @@ class Release(Plugin):
             for ms in db.get_many('release_status', s):
                 if with_doc:
                     try:
-                        doc = db.get('id', ms['_id'])
-                        yield doc
+                        yield db.get('id', ms['_id'])
                     except RecordNotFound:
                         log.debug('Record not found, skipping: %s', ms['_id'])
                 else:
@@ -523,10 +528,7 @@ class Release(Plugin):
         db = get_db()
         raw_releases = list(db.get_many('release', media_id, with_doc = True))
 
-        releases = []
-        for r in raw_releases:
-            releases.append(r['doc'])
-
+        releases = [r['doc'] for r in raw_releases]
         releases = sorted(releases, key = lambda k: k.get('info', {}).get('score', 0), reverse = True)
 
         # Sort based on preferred search method

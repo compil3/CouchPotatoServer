@@ -88,9 +88,7 @@ class Transmission(DownloaderBase):
         return self.downloadReturnId(remote_torrent['torrent-added']['hashString'])
 
     def test(self):
-        if self.connect(True) and self.trpc.get_session():
-            return True
-        return False
+        return bool(self.connect(True) and self.trpc.get_session())
 
     def getAllDownloadStatus(self, ids):
 
@@ -117,21 +115,27 @@ class Transmission(DownloaderBase):
                           (torrent['name'], torrent['id'], torrent['downloadDir'], torrent['hashString'], torrent['percentDone'], torrent['status'], torrent.get('isStalled', 'N/A'), torrent['eta'], torrent['uploadRatio'], torrent['isFinished'], session['incomplete-dir-enabled'], session['incomplete-dir']))
 
                 status = 'busy'
-                if torrent.get('isStalled') and not torrent['percentDone'] == 1 and self.conf('stalled_as_failed'):
+                if (
+                    torrent.get('isStalled')
+                    and torrent['percentDone'] != 1
+                    and self.conf('stalled_as_failed')
+                ):
                     status = 'failed'
                 elif torrent['status'] == 0 and torrent['percentDone'] == 1:
                     status = 'completed'
                 elif torrent['status'] in [5, 6]:
                     status = 'seeding'
 
-                if session['incomplete-dir-enabled'] and status == 'busy':
-                    torrent_folder = session['incomplete-dir']
-                else:
-                    torrent_folder = torrent['downloadDir']
+                torrent_folder = (
+                    session['incomplete-dir']
+                    if session['incomplete-dir-enabled'] and status == 'busy'
+                    else torrent['downloadDir']
+                )
 
-                torrent_files = []
-                for file_item in torrent['files']:
-                    torrent_files.append(sp(os.path.join(torrent_folder, file_item['name'])))
+                torrent_files = [
+                    sp(os.path.join(torrent_folder, file_item['name']))
+                    for file_item in torrent['files']
+                ]
 
                 release_downloads.append({
                     'id': torrent['hashString'],
@@ -168,7 +172,7 @@ class TransmissionRPC(object):
 
         super(TransmissionRPC, self).__init__()
 
-        self.url = 'http://' + host + ':' + str(port) + '/' + rpc_url + '/rpc'
+        self.url = f'http://{host}:{str(port)}/{rpc_url}/rpc'
         self.tag = 0
         self.session_id = 0
         self.session = {}
@@ -207,8 +211,7 @@ class TransmissionRPC(object):
             elif err.code == 409:
                 msg = str(err.read())
                 try:
-                    self.session_id = \
-                        re.search('X-Transmission-Session-Id:\s*(\w+)', msg).group(1)
+                    self.session_id = re.search('X-Transmission-Session-Id:\s*(\w+)', msg)[1]
                     log.debug('X-Transmission-Session-Id: %s', self.session_id)
 
                     # #resend request with the updated header

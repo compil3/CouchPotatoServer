@@ -88,8 +88,11 @@ class Base(NZBProvider, RSS):
     def getMoreInfo(self, item):
         try:
             if '/nfo/' in item['description'].lower():
-                nfo_url = re.search('href=\"(?P<nfo>.+)\" ', item['description']).group('nfo')
-                full_description = self.getCache('nzbindex.%s' % item['id'], url = nfo_url, cache_timeout = 25920000)
+                nfo_url = re.search('href=\"(?P<nfo>.+)\" ', item['description'])['nfo']
+                full_description = self.getCache(
+                    f"nzbindex.{item['id']}", url=nfo_url, cache_timeout=25920000
+                )
+
                 html = BeautifulSoup(full_description)
                 item['description'] = toUnicode(html.find('pre', attrs = {'id': 'nfo0'}).text)
         except:

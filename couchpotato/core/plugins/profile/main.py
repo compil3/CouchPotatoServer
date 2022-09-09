@@ -93,16 +93,12 @@ class ProfilePlugin(Plugin):
                 '3d': []
             }
 
-            # Update types
-            order = 0
-            for type in kwargs.get('types', []):
+            for order, type in enumerate(kwargs.get('types', [])):
                 profile['qualities'].append(type.get('quality'))
                 profile['wait_for'].append(tryInt(kwargs.get('wait_for', 0)))
                 profile['stop_after'].append(tryInt(kwargs.get('stop_after', 0)))
                 profile['finish'].append((tryInt(type.get('finish')) == 1) if order > 0 else True)
                 profile['3d'].append(tryInt(type.get('3d')))
-                order += 1
-
             id = kwargs.get('id')
             try:
                 p = db.get('id', id)
@@ -133,15 +129,11 @@ class ProfilePlugin(Plugin):
         try:
             db = get_db()
 
-            order = 0
-
-            for profile_id in kwargs.get('ids', []):
+            for order, profile_id in enumerate(kwargs.get('ids', [])):
                 p = db.get('id', profile_id)
                 p['hide'] = tryInt(kwargs.get('hidden')[order]) == 1
                 p['order'] = order
                 db.update(p)
-
-                order += 1
 
             return {
                 'success': True
@@ -207,9 +199,7 @@ class ProfilePlugin(Plugin):
                 '3d': [True, True]
             }]
 
-            # Create default quality profile
-            order = 0
-            for profile in profiles:
+            for order, profile in enumerate(profiles):
                 log.info('Creating default profile: %s', profile.get('label'))
 
                 pro = {
@@ -224,15 +214,13 @@ class ProfilePlugin(Plugin):
                 }
 
                 threed = profile.get('3d', [])
-                for q in profile.get('qualities'):
+                for _ in profile.get('qualities'):
                     pro['finish'].append(True)
                     pro['wait_for'].append(0)
                     pro['stop_after'].append(0)
                     pro['3d'].append(threed.pop() if threed else False)
 
                 db.insert(pro)
-                order += 1
-
             return True
         except:
             log.error('Failed: %s', traceback.format_exc())

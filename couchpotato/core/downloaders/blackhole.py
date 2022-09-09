@@ -36,9 +36,9 @@ class Blackhole(DownloaderBase):
                     except:
                         log.error('Failed download torrent via magnet url: %s', traceback.format_exc())
 
-                    if not filedata or len(filedata) < 50:
-                        log.error('No nzb/torrent available: %s', data.get('url'))
-                        return False
+                if not filedata or len(filedata) < 50:
+                    log.error('No nzb/torrent available: %s', data.get('url'))
+                    return False
 
                 file_name = self.createFileName(data, filedata, media)
                 full_path = os.path.join(directory, file_name)
@@ -58,15 +58,11 @@ class Blackhole(DownloaderBase):
                         with open(full_path, 'wb') as f:
                             f.write(filedata)
                         os.chmod(full_path, Env.getPermission('file'))
-                        return self.downloadReturnId('')
                     else:
                         log.info('File %s already exists.', full_path)
-                        return self.downloadReturnId('')
-
+                    return self.downloadReturnId('')
                 except:
                     log.error('Failed to download to blackhole %s', traceback.format_exc())
-                    pass
-
             except:
                 log.info('Failed to download file %s: %s', (data.get('name'), traceback.format_exc()))
                 return False
@@ -104,7 +100,7 @@ class Blackhole(DownloaderBase):
             for_protocol.append(data.get('protocol'))
 
         return super(Blackhole, self).isEnabled(manual, data) and \
-            ((self.conf('use_for') in for_protocol))
+                ((self.conf('use_for') in for_protocol))
 
 
 config = [{

@@ -56,7 +56,7 @@ class RedisJobStore(JobStore):
 
     def load_jobs(self):
         jobs = []
-        keys = self.redis.keys(self.key_prefix + '*')
+        keys = self.redis.keys(f'{self.key_prefix}*')
         pipeline = self.redis.pipeline()
         for key in keys:
             pipeline.hgetall(key)
@@ -88,4 +88,4 @@ class RedisJobStore(JobStore):
         self.redis.connection_pool.disconnect()
 
     def __repr__(self):
-        return '<%s>' % self.__class__.__name__
+        return f'<{self.__class__.__name__}>'

@@ -35,10 +35,14 @@ class SQLAlchemyJobStore(JobStore):
         else:
             pickle_coltype = PickleType(pickle_protocol)
         self.jobs_t = Table(
-            tablename, metadata or MetaData(),
-            Column('id', Integer,
-                   Sequence(tablename + '_id_seq', optional=True),
-                   primary_key=True),
+            tablename,
+            metadata or MetaData(),
+            Column(
+                'id',
+                Integer,
+                Sequence(f'{tablename}_id_seq', optional=True),
+                primary_key=True,
+            ),
             Column('trigger', pickle_coltype, nullable=False),
             Column('func_ref', String(1024), nullable=False),
             Column('args', pickle_coltype, nullable=False),
@@ -49,7 +53,9 @@ class SQLAlchemyJobStore(JobStore):
             Column('max_runs', Integer),
             Column('max_instances', Integer),
             Column('next_run_time', DateTime, nullable=False),
-            Column('runs', BigInteger))
+            Column('runs', BigInteger),
+        )
+
 
         self.jobs_t.create(self.engine, True)
 
@@ -88,4 +94,4 @@ class SQLAlchemyJobStore(JobStore):
         self.engine.dispose()
 
     def __repr__(self):
-        return '<%s (url=%s)>' % (self.__class__.__name__, self.engine.url)
+        return f'<{self.__class__.__name__} (url={self.engine.url})>'

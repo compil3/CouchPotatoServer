@@ -26,9 +26,9 @@ class Filmweb(UserscriptBase):
         if name is None:
             name = re.search("<a.*?property=\"v:name\".*?>(?P<name>[^<]+)</a>", data)
 
-        name = name.group('name').decode('string_escape')
+        name = name['name'].decode('string_escape')
 
         year = re.search("<span.*?id=filmYear.*?>\((?P<year>[^\)]+)\).*?</span>", data)
-        year = year.group('year')
+        year = year['year']
 
         return self.search(name, year)

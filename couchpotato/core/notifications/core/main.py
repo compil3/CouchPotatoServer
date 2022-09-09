@@ -113,14 +113,11 @@ class CoreNotifier(Notification):
         else:
             results = db.get_many('notification', limit = 200, with_doc = True)
 
-        notifications = []
-        for n in results:
-            notifications.append(n['doc'])
-
+        notifications = [n['doc'] for n in results]
         return {
             'success': True,
-            'empty': len(notifications) == 0,
-            'notifications': notifications
+            'empty': not notifications,
+            'notifications': notifications,
         }
 
     def checkMessages(self):
@@ -148,7 +145,7 @@ class CoreNotifier(Notification):
         try:
             db = get_db()
 
-            data['notification_type'] = listener if listener else 'unknown'
+            data['notification_type'] = listener or 'unknown'
 
             n = {
                 '_t': 'notification',
@@ -265,9 +262,11 @@ class CoreNotifier(Notification):
 
             notifications = db.all('notification', with_doc = True)
 
-            for n in notifications:
-                if n['doc'].get('time') > (time.time() - 604800):
-                    messages.append(n['doc'])
+            messages.extend(
+                n['doc']
+                for n in notifications
+                if n['doc'].get('time') > (time.time() - 604800)
+            )
 
         return {
             'success': True,

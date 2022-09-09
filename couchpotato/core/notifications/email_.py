@@ -40,7 +40,7 @@ class Email(Notification):
 
         try:
             # Open the SMTP connection, via SSL if requested
-            log.debug("Connecting to host %s on port %s" % (smtp_server, smtp_port))
+            log.debug(f"Connecting to host {smtp_server} on port {smtp_port}")
             log.debug("SMTP over SSL %s", ("enabled" if ssl == 1 else "disabled"))
             mailserver = smtplib.SMTP_SSL(smtp_server) if ssl == 1 else smtplib.SMTP(smtp_server)
 

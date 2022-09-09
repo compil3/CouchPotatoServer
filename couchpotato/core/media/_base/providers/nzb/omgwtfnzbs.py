@@ -39,7 +39,7 @@ class Base(NZBProvider, RSS):
 
     def _searchOnTitle(self, title, movie, quality, results):
 
-        q = '%s %s' % (title, movie['info']['year'])
+        q = f"{title} {movie['info']['year']}"
         params = tryUrlencode({
             'search': q,
             'catid': ','.join([str(x) for x in self.getCatId(quality)]),

@@ -32,11 +32,7 @@ class MongoDBJobStore(JobStore):
         if not collection:
             raise ValueError('The "collection" parameter must not be empty')
 
-        if connection:
-            self.connection = connection
-        else:
-            self.connection = Connection(**connect_args)
-
+        self.connection = connection or Connection(**connect_args)
         self.collection = self.connection[database][collection]
 
     def add_job(self, job):
@@ -81,4 +77,4 @@ class MongoDBJobStore(JobStore):
 
     def __repr__(self):
         connection = self.collection.database.connection
-        return '<%s (connection=%s)>' % (self.__class__.__name__, connection)
+        return f'<{self.__class__.__name__} (connection={connection})>'

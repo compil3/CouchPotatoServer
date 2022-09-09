@@ -84,7 +84,7 @@ class ClientScript(Plugin):
         for static_type in self.core_static:
             for rel_path in self.core_static.get(static_type):
                 file_path = os.path.join(Env.get('app_dir'), 'couchpotato', 'static', rel_path)
-                core_url = 'static/%s' % rel_path
+                core_url = f'static/{rel_path}'
 
                 if static_type == 'script':
                     self.registerScript(core_url, file_path, position = 'front')
@@ -105,7 +105,7 @@ class ClientScript(Plugin):
             positions = self.paths.get(file_type, {})
             for position in positions:
                 files = positions.get(position)
-                self._minify(file_type, files, position, position + '.' + ext)
+                self._minify(file_type, files, position, f'{position}.{ext}')
 
     def _minify(self, file_type, files, position, out):
 
@@ -141,7 +141,7 @@ class ClientScript(Plugin):
         if not self.minified[file_type].get(position):
             self.minified[file_type][position] = []
 
-        minified_url = 'minified/%s?%s' % (out_name, tryInt(os.path.getmtime(out)))
+        minified_url = f'minified/{out_name}?{tryInt(os.path.getmtime(out))}'
         self.minified[file_type][position].append(minified_url)
 
     def getStyles(self, *args, **kwargs):
@@ -175,7 +175,7 @@ class ClientScript(Plugin):
 
     def register(self, api_path, file_path, type, location):
 
-        api_path = '%s?%s' % (api_path, tryInt(os.path.getmtime(file_path)))
+        api_path = f'{api_path}?{tryInt(os.path.getmtime(file_path))}'
 
         if not self.urls[type].get(location):
             self.urls[type][location] = []
@@ -199,9 +199,9 @@ class ClientScript(Plugin):
             for curly in curl_split:
                 curly = curly.strip()
                 for prop in self.prefix_properties:
-                    if curly[:len(prop) + 1] == prop + ':':
+                    if curly[: len(prop) + 1] == f'{prop}:':
                         for tag in self.prefix_tags:
-                            new_data += ' -%s-%s; ' % (tag, curly)
+                            new_data += f' -{tag}-{curly}; '
 
                 new_data += curly + (' { ' if len(curl_split) > 1 else ' ')
 

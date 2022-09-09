@@ -102,13 +102,15 @@ class MovieBase(MovieTypeBase):
                 '_t': 'media',
                 'type': 'movie',
                 'title': def_title,
-                'identifiers': {
-                    'imdb': params.get('identifier')
-                },
-                'status': status if status else 'active',
-                'profile_id': params.get('profile_id') or default_profile.get('_id'),
-                'category_id': cat_id if cat_id is not None and len(cat_id) > 0 and cat_id != '-1' else None,
+                'identifiers': {'imdb': params.get('identifier')},
+                'status': status or 'active',
+                'profile_id': params.get('profile_id')
+                or default_profile.get('_id'),
+                'category_id': cat_id
+                if cat_id is not None and len(cat_id) > 0 and cat_id != '-1'
+                else None,
             }
+
 
             # Update movie info
             try: del info['in_wanted']
@@ -120,7 +122,7 @@ class MovieBase(MovieTypeBase):
             new = False
             previous_profile = None
             try:
-                m = db.get('media', 'imdb-%s' % params.get('identifier'), with_doc = True)['doc']
+                m = db.get('media', f"imdb-{params.get('identifier')}", with_doc = True)['doc']
 
                 try:
                     db.get('id', m.get('profile_id'))
@@ -156,7 +158,10 @@ class MovieBase(MovieTypeBase):
                         else:
                             fireEvent('release.delete', release['_id'], single = True)
 
-                m['profile_id'] = (params.get('profile_id') or default_profile.get('_id')) if not previous_profile else previous_profile
+                m['profile_id'] = previous_profile or (
+                    params.get('profile_id') or default_profile.get('_id')
+                )
+
                 m['category_id'] = cat_id if cat_id is not None and len(cat_id) > 0 else (m.get('category_id') or None)
                 m['last_edit'] = int(time.time())
                 m['tags'] = []
@@ -189,12 +194,10 @@ class MovieBase(MovieTypeBase):
 
                 if params.get('title'):
                     message = 'Successfully added "%s" to your wanted list.' % params.get('title', '')
+                elif title := getTitle(m):
+                    message = 'Successfully added "%s" to your wanted list.' % title
                 else:
-                    title = getTitle(m)
-                    if title:
-                        message = 'Successfully added "%s" to your wanted list.' % title
-                    else:
-                        message = 'Successfully added to your wanted list.'
+                    message = 'Successfully added to your wanted list.'
                 fireEvent('notify.frontend', type = 'movie.added', data = movie_dict, message = message)
 
             return movie_dict
@@ -204,10 +207,7 @@ class MovieBase(MovieTypeBase):
     def addView(self, **kwargs):
         add_dict = self.add(params = kwargs)
 
-        return {
-            'success': True if add_dict else False,
-            'movie': add_dict,
-        }
+        return {'success': bool(add_dict), 'movie': add_dict}
 
     def edit(self, id = '', **kwargs):
 
@@ -275,7 +275,7 @@ class MovieBase(MovieTypeBase):
             if media_id:
                 media = db.get('id', media_id)
             else:
-                media = db.get('media', 'imdb-%s' % identifier, with_doc = True)['doc']
+                media = db.get('media', f'imdb-{identifier}', with_doc = True)['doc']
 
             info = fireEvent('movie.info', merge = True, extended = extended, identifier = getIdentifier(media))
 
@@ -298,13 +298,12 @@ class MovieBase(MovieTypeBase):
             # Define default title
             if default_title:
                 def_title = None
-                if default_title:
-                    counter = 0
-                    for title in titles:
-                        if title.lower() == toUnicode(default_title.lower()) or (toUnicode(default_title) == six.u('') and toUnicode(titles[0]) == title):
-                            def_title = toUnicode(title)
-                            break
-                        counter += 1
+                counter = 0
+                for title in titles:
+                    if title.lower() == toUnicode(default_title.lower()) or (toUnicode(default_title) == six.u('') and toUnicode(titles[0]) == title):
+                        def_title = toUnicode(title)
+                        break
+                    counter += 1
 
                 if not def_title:
                     def_title = toUnicode(titles[0])
@@ -317,7 +316,7 @@ class MovieBase(MovieTypeBase):
             for image_type in ['poster']:
 
                 # Remove non-existing files
-                file_type = 'image_%s' % image_type
+                file_type = f'image_{image_type}'
                 existing_files = list(set(media['files'].get(file_type, [])))
                 for ef in media['files'].get(file_type, []):
                     if not os.path.isfile(ef):
@@ -325,7 +324,7 @@ class MovieBase(MovieTypeBase):
 
                 # Replace new files list
                 media['files'][file_type] = existing_files
-                if len(existing_files) == 0:
+                if not existing_files:
                     del media['files'][file_type]
 
                 # Loop over type
@@ -333,14 +332,17 @@ class MovieBase(MovieTypeBase):
                     if not isinstance(image, (str, unicode)):
                         continue
 
-                    if file_type not in media['files'] or len(media['files'].get(file_type, [])) == 0:
-                        file_path = fireEvent('file.download', url = image, single = True)
-                        if file_path:
-                            media['files'][file_type] = [file_path]
-                            break
-                    else:
+                    if (
+                        file_type in media['files']
+                        and len(media['files'].get(file_type, [])) != 0
+                    ):
                         break
 
+                    if file_path := fireEvent(
+                        'file.download', url=image, single=True
+                    ):
+                        media['files'][file_type] = [file_path]
+                        break
             db.update(media)
 
             return media

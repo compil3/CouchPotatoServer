@@ -63,9 +63,9 @@ class Logging(Plugin):
         current_path = None
 
         total = 1
-        for x in range(0, 50):
+        for x in range(50):
 
-            path = '%s%s' % (Env.get('log_path'), '.%s' % x if x > 0 else '')
+            path = f"{Env.get('log_path')}{f'.{x}' if x > 0 else ''}"
 
             # Check see if the log exists
             if not os.path.isfile(path):
@@ -95,9 +95,9 @@ class Logging(Plugin):
 
         log_lines = []
 
-        for x in range(0, 50):
+        for x in range(50):
 
-            path = '%s%s' % (Env.get('log_path'), '.%s' % x if x > 0 else '')
+            path = f"{Env.get('log_path')}{f'.{x}' if x > 0 else ''}"
 
             # Check see if the log exists
             if not os.path.isfile(path):
@@ -135,11 +135,10 @@ class Logging(Plugin):
 
         logs = []
         for log_line in logs_raw:
-            split = splitString(log_line, '\x1b')
-            if split:
+            if split := splitString(log_line, '\x1b'):
                 try:
                     date, time, log_type = splitString(split[0], ' ')
-                    timestamp = '%s %s' % (date, time)
+                    timestamp = f'{date} {time}'
                 except:
                     timestamp = 'UNKNOWN'
                     log_type = 'UNKNOWN'
@@ -157,8 +156,8 @@ class Logging(Plugin):
 
     def clear(self, **kwargs):
 
-        for x in range(0, 50):
-            path = '%s%s' % (Env.get('log_path'), '.%s' % x if x > 0 else '')
+        for x in range(50):
+            path = f"{Env.get('log_path')}{f'.{x}' if x > 0 else ''}"
 
             if not os.path.isfile(path):
                 continue
@@ -181,7 +180,7 @@ class Logging(Plugin):
     def log(self, type = 'error', **kwargs):
 
         try:
-            log_message = 'API log: %s' % kwargs
+            log_message = f'API log: {kwargs}'
             try:
                 getattr(log, type)(log_message)
             except:

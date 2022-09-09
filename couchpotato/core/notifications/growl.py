@@ -33,14 +33,16 @@ class Growl(Notification):
             port = self.conf('port')
 
             self.growl = notifier.GrowlNotifier(
-                applicationName = Env.get('appname'),
-                notifications = ["Updates"],
-                defaultNotifications = ["Updates"],
-                applicationIcon = '%s/static/images/couch.png' % fireEvent('app.api_url', single = True),
-                hostname = hostname if hostname else 'localhost',
-                password = password if password else None,
-                port = port if port else 23053
+                applicationName=Env.get('appname'),
+                notifications=["Updates"],
+                defaultNotifications=["Updates"],
+                applicationIcon='%s/static/images/couch.png'
+                % fireEvent('app.api_url', single=True),
+                hostname=hostname or 'localhost',
+                password=password or None,
+                port=port or 23053,
             )
+
             self.growl.register()
             self.registered = True
         except Exception as e:

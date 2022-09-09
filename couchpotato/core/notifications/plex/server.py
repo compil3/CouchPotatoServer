@@ -22,10 +22,11 @@ class PlexServer(object):
         self.last_clients_update = None
 
     def staleClients(self):
-        if not self.last_clients_update:
-            return True
-
-        return self.last_clients_update + timedelta(minutes=15) < datetime.now()
+        return (
+            self.last_clients_update + timedelta(minutes=15) < datetime.now()
+            if self.last_clients_update
+            else True
+        )
 
     def request(self, path, data_type='xml'):
         if not self.plex.conf('media_server'):
@@ -40,10 +41,7 @@ class PlexServer(object):
             path
         ))
 
-        if data_type == 'xml':
-            return etree.fromstring(data)
-        else:
-            return data
+        return etree.fromstring(data) if data_type == 'xml' else data
 
     def updateClients(self, client_names):
         log.info('Searching for clients on Plex Media Server')
@@ -95,7 +93,7 @@ class PlexServer(object):
                 if section.get('type') not in section_types:
                     continue
 
-                self.request('library/sections/%s/refresh' % section.get('key'), 'text')
+                self.request(f"library/sections/{section.get('key')}/refresh", 'text')
         except:
             log.error('Plex library update failed for %s, Media Server not running: %s',
                       (self.plex.conf('media_server'), traceback.format_exc(1)))
@@ -110,6 +108,6 @@ class PlexServer(object):
         h = h.rstrip('/')
 
         if port and not p.port:
-            h += ':%s' % port
+            h += f':{port}'
 
         return h

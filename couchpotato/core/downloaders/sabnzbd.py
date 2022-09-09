@@ -60,10 +60,7 @@ class Sabnzbd(DownloaderBase):
         log.debug('Result from SAB: %s', sab_data)
         if sab_data.get('status') and not sab_data.get('error'):
             log.info('NZB sent to SAB successfully.')
-            if filedata:
-                return self.downloadReturnId(sab_data.get('nzo_ids')[0])
-            else:
-                return True
+            return self.downloadReturnId(sab_data.get('nzo_ids')[0]) if filedata else True
         else:
             log.error('Error getting data from SABNZBd: %s', sab_data)
             return False
@@ -120,13 +117,16 @@ class Sabnzbd(DownloaderBase):
                 if 'ENCRYPTED / ' in nzb['filename']:
                     status = 'failed'
 
-                release_downloads.append({
-                    'id': nzb['nzo_id'],
-                    'name': nzb['filename'],
-                    'status': status,
-                    'original_status': nzb['status'],
-                    'timeleft': nzb['timeleft'] if not queue['paused'] else -1,
-                })
+                release_downloads.append(
+                    {
+                        'id': nzb['nzo_id'],
+                        'name': nzb['filename'],
+                        'status': status,
+                        'original_status': nzb['status'],
+                        'timeleft': -1 if queue['paused'] else nzb['timeleft'],
+                    }
+                )
+
 
         # Get old releases
         for nzb in history.get('slots', []):
@@ -195,15 +195,14 @@ class Sabnzbd(DownloaderBase):
         }))
 
         data = self.urlopen(url, timeout = 60, show_error = False, headers = {'User-Agent': Env.getIdentifier()}, **kwargs)
-        if use_json:
-            d = json.loads(data)
-            if d.get('error'):
-                log.error('Error getting data from SABNZBd: %s', d.get('error'))
-                return {}
-
-            return d.get(request_params['mode']) or d
-        else:
+        if not use_json:
             return data
+        d = json.loads(data)
+        if d.get('error'):
+            log.error('Error getting data from SABNZBd: %s', d.get('error'))
+            return {}
+
+        return d.get(request_params['mode']) or d
 
 
 config = [{

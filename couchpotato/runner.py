@@ -44,7 +44,7 @@ def getOptions(args):
 
     options = parser.parse_args(args)
 
-    data_dir = os.path.expanduser(options.data_dir if options.data_dir else getDataDir())
+    data_dir = os.path.expanduser(options.data_dir or getDataDir())
 
     if not options.config_file:
         options.config_file = os.path.join(data_dir, 'settings.conf')
@@ -66,8 +66,7 @@ def _log(status_code, request):
     else:
         log_method = logging.debug
     request_time = 1000.0 * request.request_time()
-    summary = request.method + " " + request.uri + " (" + \
-        request.remote_ip + ")"
+    summary = ((f"{request.method} {request.uri} (" + request.remote_ip) + ")")
     log_method("%d %s %.2fms", status_code, summary, request_time)
 
 
@@ -121,11 +120,15 @@ def runCouchPotato(options, base_path, args, data_dir = None, log_dir = None, En
             os.remove(os.path.join(backup_path, eb[1]))
 
         # Create new backup
-        new_backup = sp(os.path.join(backup_path, '%s.tar.gz' % int(time.time())))
+        new_backup = sp(os.path.join(backup_path, f'{int(time.time())}.tar.gz'))
         zipf = tarfile.open(new_backup, 'w:gz')
         for root, dirs, files in os.walk(db_path):
             for zfilename in files:
-                zipf.add(os.path.join(root, zfilename), arcname = 'database/%s' % os.path.join(root[len(db_path) + 1:], zfilename))
+                zipf.add(
+                    os.path.join(root, zfilename),
+                    arcname=f'database/{os.path.join(root[len(db_path) + 1:], zfilename)}',
+                )
+
         zipf.close()
 
         # Open last
@@ -213,6 +216,7 @@ def runCouchPotato(options, base_path, args, data_dir = None, log_dir = None, En
 
     def customwarn(message, category, filename, lineno, file = None, line = None):
         log.warning('%s %s %s line:%s', (category, message, filename, lineno))
+
     warnings.showwarning = customwarn
 
     # Create app
@@ -225,7 +229,7 @@ def runCouchPotato(options, base_path, args, data_dir = None, log_dir = None, En
         api_key = uuid4().hex
         Env.setting('api_key', value = api_key)
 
-    api_base = r'%sapi/%s/' % (web_base, api_key)
+    api_base = f'{web_base}api/{api_key}/'
     Env.set('api_base', api_base)
 
     # Basic config
@@ -242,38 +246,51 @@ def runCouchPotato(options, base_path, args, data_dir = None, log_dir = None, En
     # Load the app
     application = Application(
         [],
-        log_function = lambda x: None,
-        debug = config['use_reloader'],
-        gzip = True,
-        cookie_secret = api_key,
-        login_url = '%slogin/' % web_base,
+        log_function=lambda x: None,
+        debug=config['use_reloader'],
+        gzip=True,
+        cookie_secret=api_key,
+        login_url=f'{web_base}login/',
     )
+
     Env.set('app', application)
 
     # Request handlers
-    application.add_handlers(".*$", [
-        (r'%snonblock/(.*)(/?)' % api_base, NonBlockHandler),
+    application.add_handlers(
+        ".*$",
+        [
+            (f'{api_base}nonblock/(.*)(/?)', NonBlockHandler),
+            (f'{api_base}(.*)(/?)', ApiHandler),
+            (f'{web_base}getkey(/?)', KeyHandler),
+            (f'{api_base}', RedirectHandler, {"url": f'{web_base}docs/'}),
+            (f'{web_base}login(/?)', LoginHandler),
+            (f'{web_base}logout(/?)', LogoutHandler),
+            (f'{web_base}(.*)(/?)', WebHandler),
+            (r'(.*)', WebHandler),
+        ],
+    )
 
-        # API handlers
-        (r'%s(.*)(/?)' % api_base, ApiHandler),  # Main API handler
-        (r'%sgetkey(/?)' % web_base, KeyHandler),  # Get API key
-        (r'%s' % api_base, RedirectHandler, {"url": web_base + 'docs/'}),  # API docs
-
-        # Login handlers
-        (r'%slogin(/?)' % web_base, LoginHandler),
-        (r'%slogout(/?)' % web_base, LogoutHandler),
-
-        # Catch all webhandlers
-        (r'%s(.*)(/?)' % web_base, WebHandler),
-        (r'(.*)', WebHandler),
-    ])
 
     # Static paths
-    static_path = '%sstatic/' % web_base
+    static_path = f'{web_base}static/'
     for dir_name in ['fonts', 'images', 'scripts', 'style']:
-        application.add_handlers(".*$", [
-            ('%s%s/(.*)' % (static_path, dir_name), StaticFileHandler, {'path': sp(os.path.join(base_path, 'couchpotato', 'static', dir_name))})
-        ])
+        application.add_handlers(
+            ".*$",
+            [
+                (
+                    f'{static_path}{dir_name}/(.*)',
+                    StaticFileHandler,
+                    {
+                        'path': sp(
+                            os.path.join(
+                                base_path, 'couchpotato', 'static', dir_name
+                            )
+                        )
+                    },
+                )
+            ],
+        )
+
     Env.set('static_path', static_path)
 
     # Load configs & plugins
@@ -295,6 +312,7 @@ def runCouchPotato(options, base_path, args, data_dir = None, log_dir = None, En
     # Reload hook
     def reload_hook():
         fireEvent('app.shutdown')
+
     add_reload_hook(reload_hook)
 
     # Some logging and fire load event
